@@ -8,7 +8,6 @@ import android.os.Build;
 public class BscanApp extends Application {
     public static final String CHANNEL_ID = "blueServiceChannel";
 
-
     public void onCreate(){
         super.onCreate();
 
