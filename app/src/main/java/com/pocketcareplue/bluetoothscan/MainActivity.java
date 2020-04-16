@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,12 +21,12 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
     BluetoothAdapter mBluetoothAdapter;
-
-    public ArrayList<BluetoothDevice> mBTDevices;
+    public ArrayList<BTDevice> mBTDevices;
     DeviceListAdapter mDeviceListAdapter;
     ListView lvDevicesList;
 
@@ -37,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         this.btnOnOff = (Button) findViewById(R.id.btnOnOff);
         this.lvDevicesList = (ListView) findViewById(R.id.lvNewDevices);
-        this.mBTDevices = new ArrayList<BluetoothDevice>();
+        this.mBTDevices = new ArrayList<BTDevice>();
 
         this.btnOnOff.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -56,19 +57,14 @@ public class MainActivity extends AppCompatActivity {
 
         if(mBluetoothAdapter.isEnabled()){
             mBluetoothAdapter.disable();
-            IntentFilter btInten = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-            registerReceiver(mBroadcastReceiver, btInten);
         }
         else{
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivity(enableIntent);
 
-            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            /*Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
             discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-            startActivity(discoverableIntent);
-
-            registerReceiver(mBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
-            registerReceiver(mBroadcastReceiver, new IntentFilter(mBluetoothAdapter.ACTION_SCAN_MODE_CHANGED));
+            startActivity(discoverableIntent);*/
         }
     }
 
@@ -85,61 +81,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void btnDiscover(View view) {
-        if(mBluetoothAdapter.isDiscovering()){
-            mBluetoothAdapter.cancelDiscovery();
+        mBTDevices.clear();
 
-            this.checkBTPermissions();
+        SharedPreferences sh = getSharedPreferences("BTDeviceData", MODE_PRIVATE);
+        Map<String, ?> allEntries = sh.getAll();
+        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
+            Log.d("map values", entry.getKey() + ": " + entry.getValue().toString());
 
-            mBluetoothAdapter.startDiscovery();
-            registerReceiver(mBroadcastReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
-        }else{
-            this.checkBTPermissions();
-            mBluetoothAdapter.startDiscovery();
-            registerReceiver(mBroadcastReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+            mBTDevices.add(new BTDevice(entry.getKey(), entry.getValue().toString()));
+
+            Toast.makeText(getApplicationContext(), "map values"+entry.getKey() + ": " + entry.getValue().toString(),
+                    Toast.LENGTH_SHORT).show();
         }
+
+        mDeviceListAdapter = new DeviceListAdapter(getApplicationContext(), R.layout.devie_adapter_view, mBTDevices);
+        lvDevicesList.setAdapter(mDeviceListAdapter);
+
+        if ( allEntries.size() == 0){
+            Toast.makeText(getApplicationContext(), "No devices found", Toast.LENGTH_LONG).show();
+        }
+
     }
 
     public void onDestroy(){
         super.onDestroy();
-        unregisterReceiver(mBroadcastReceiver);
     }
-
-    private void checkBTPermissions() {
-        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP){
-            int permissionCheck = this.checkSelfPermission("Manifest.permission.ACCESS_FINE_LOCATION");
-            permissionCheck += this.checkSelfPermission("Manifest.permission.ACCESS_COARSE_LOCATION");
-            if (permissionCheck != 0) {
-
-                this.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1001); //Any number
-            }
-        }else{
-            Log.d("TA", "checkBTPermissions: No need to check permissions. SDK version < LOLLIPOP.");
-        }
-    }
-
-    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                // Discovery has found a device. Get the BluetoothDevice
-                // object and its info from the Intent.
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                mBTDevices.add(device);
-
-                mDeviceListAdapter = new DeviceListAdapter(context, R.layout.devie_adapter_view, mBTDevices);
-
-                lvDevicesList.setAdapter(mDeviceListAdapter);;
-
-                String deviceName = device.getName();
-                String deviceHardwareAddress = device.getAddress(); // MAC address
-            }
-
-            if(BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)){
-                int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, mBluetoothAdapter.ERROR);
-                Log.println(Log.DEBUG, "TA", "state: "+state);
-
-            }
-        }
-    };
 
 }

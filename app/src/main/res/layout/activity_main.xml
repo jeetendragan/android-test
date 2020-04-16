@@ -8,7 +8,10 @@
     android:gravity="center"
     android:padding="16dp"
     android:orientation="vertical">
-
+    <TextView
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:text="Version - 10"/>
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -25,13 +28,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="On/Off"
-        android:id="@+id/btnOnOff"
-        android:onClick="btnDiscover"/>
+        android:id="@+id/btnOnOff" />
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Discover"
+        android:text="Show discovered"
         android:onClick="btnDiscover"/>
 
     <ListView
